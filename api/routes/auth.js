@@ -1,11 +1,12 @@
 import express from "express";
-import { verifyJWT } from "../configs/jwt-token-helpers.js";
-import auth from "../controllers/auth.js";
+import { verfiyAccessToken } from "../middleware/auth.js";
+import * as auth from "../controllers/auth.js";
 
 const router = express.Router();
 
 router.post("/login", auth.login);
+router.post("/refresh", auth.refreshToken);
 router.post("/register", auth.register);
-router.post("/logout", verifyJWT, auth.logout);
+router.get("/logout", auth.logout);
 
 export default router;

@@ -11,9 +11,7 @@ interface IApiService {
 
 class ApiService implements IApiService {
   get(route: string): Observable<any> {
-    const headers: _Headers = {
-      "Access-Control_Allow-Origin": "*",
-    };
+    const headers: _Headers = {};
     const requestModel = new BaseRequestModel(route, "GET", headers);
 
     return requestModel.request();
@@ -21,7 +19,6 @@ class ApiService implements IApiService {
 
   post(route: string, body: Body): Observable<any> {
     const headers: _Headers = {
-      "Access-Control_Allow-Origin": "*",
       "Content-Type": "application/json",
     };
     const requestModel = new BaseRequestModel(route, "POST", headers, body);
@@ -31,7 +28,6 @@ class ApiService implements IApiService {
 
   put(route: string, body: Body): Observable<any> {
     const headers: _Headers = {
-      "Access-Control_Allow-Origin": "*",
       "Content-Type": "application/json",
     };
     const requestModel = new BaseRequestModel(route, "POST", headers, body);
@@ -41,7 +37,6 @@ class ApiService implements IApiService {
 
   delete(route: string): Observable<any> {
     const headers: _Headers = {
-      "Access-Control_Allow-Origin": "*",
       "Content-Type": "application/json",
     };
     const requestModel = new BaseRequestModel(route, "POST", headers);

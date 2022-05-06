@@ -1,21 +1,36 @@
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
+import { axios } from "services";
 import "./Login.scss";
 
 import { Form, Input, Button, Checkbox } from "antd";
 import { Link } from "react-router-dom";
 import { api } from "services";
+import apiRoutes from "configs/apiRoutes";
+import useAuth from "hooks/useAuth";
 
 export default function Login() {
-  function onFinish(values: any) {
+  const { setAuth } = useAuth();
+
+  async function onFinish(values: any) {
     console.log(values);
     const data = JSON.stringify({
       email: values.email,
       password: values.password,
     });
 
-    const observer = api.post("auth/login", data);
-    observer.subscribe((res) => {
-      console.log(res);
+    const response = await axios.post(apiRoutes.APP_AUTH_LOGIN.url, data, {
+      headers: {
+        "Content-type": "application/json",
+      },
+      withCredentials: true,
+    });
+
+    setAuth({
+      id: response.data.id,
+      email: response.data.emil,
+      accessToken: response.data.accessToken,
+      refreshToken: response.data.refreshToken,
+      isLogged: true,
     });
   }
 

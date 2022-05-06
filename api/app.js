@@ -10,9 +10,16 @@ import "./db/db.js";
 import authRoute from "./routes/auth.js";
 import userRoute from "./routes/user.js";
 
+// cors
+import credentials from "./middleware/credentials.js";
+import corsOptions from "./configs/corsOptions.js";
+
 const app = express();
 
-app.use(cors());
+app.use(credentials);
+
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(cookieParser());
 

@@ -2,9 +2,10 @@ import bcrypt from "bcryptjs";
 import Joi from "@hapi/joi";
 import User from "../models/user.js";
 import {
-  generateAccessToken,
-  COOKIE_KEY,
-} from "../configs/jwt-token-helpers.js";
+  COOKIE_ACCESS_TOKEN_KEY,
+  signAccessToken,
+} from "../middleware/helpers.js";
+import { verifyRefreshToken } from "../middleware/auth.js";
 
 // validate user info
 const reqisterSchema = Joi.object({
@@ -18,9 +19,13 @@ const loginSchema = Joi.object({
   password: Joi.string().min(6).required(),
 });
 
-async function login(req, res) {
+/**
+ * Login user
+ * @param {Request} req
+ * @param {Response} res
+ */
+export async function login(req, res) {
   const body = req.body;
-  console.log(body);
   const user = await User.findOne({ email: body.email });
 
   const isValidPassword = await bcrypt.compare(
@@ -41,10 +46,13 @@ async function login(req, res) {
     if (error) {
       return res.json({ success: false, message: error.details[0].message });
     } else {
-      const token = generateAccessToken(user.id);
+      const accessToken = signAccessToken(user.id);
+      await user.generateRefreshToken();
+
+      await user.save();
 
       return res
-        .cookie(COOKIE_KEY, token, {
+        .cookie(COOKIE_ACCESS_TOKEN_KEY, accessToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
         })
@@ -55,18 +63,103 @@ async function login(req, res) {
         });
     }
   } catch (error) {
-    res.status(400).json({ success: false, message: error });
+    console.log(error);
+    res.status(400).json({ success: false, message: JSON.stringify(error) });
   }
 }
 
-function logout(req, res) {
-  return res.clearCookie(COOKIE_KEY).status(200).json({
-    success: true,
-    message: "Successfully logged out",
-  });
+/**
+ * Update user refresh/access tokens
+ * @param {Request} req
+ * @param {Response} res
+ */
+export async function refreshToken(req, res) {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: true,
+        error: "No refresh token provided",
+      });
+    }
+
+    const payload = await verifyRefreshToken(refreshToken);
+
+    const user = await User.findOne({ _id: payload._id }).exec();
+    console.log(payload._id, user.refreshToken);
+
+    if (!user) {
+      return res.status(401).json({
+        status: false,
+        message: "User not found",
+      });
+    } else if (user.refreshToken !== refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Old token. Not valid anymore",
+      });
+    }
+
+    const accessToken = signAccessToken(user.id);
+    await user.generateRefreshToken();
+    await user.save();
+
+    return res
+      .status(200)
+      .cookie(COOKIE_ACCESS_TOKEN_KEY, accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+      })
+      .json({
+        success: true,
+        data: {
+          accessToken: accessToken,
+          refreshToken: user.refreshToken,
+        },
+      });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({
+      success: false,
+      error: error,
+    });
+  }
 }
 
-async function register(req, res) {
+/**
+ * Register user
+ * @param {Request} req
+ * @param {Response} res
+ */
+export async function logout(req, res) {
+  try {
+    const user = await User.findOne({ id: req.params.id });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    user.refreshToken = "";
+
+    await user.save();
+
+    return res.status(200).clearCookie(COOKIE_ACCESS_TOKEN_KEY).json({
+      success: true,
+      message: "Successfully logged out",
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error,
+    });
+  }
+}
+
+export async function register(req, res) {
   const body = req.body;
   // check user by email is exist
   const existUser = await User.findOne({ email: body.email });
@@ -107,9 +200,3 @@ async function register(req, res) {
     return res.status(400).json({ success: false, message: error });
   }
 }
-
-export default {
-  login,
-  register,
-  logout,
-};
