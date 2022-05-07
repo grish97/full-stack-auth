@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { COOKIE_ACCESS_TOKEN_KEY } from "./helpers.js";
+import { COOKIE_JWT_KEY } from "./helpers.js";
 
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } = process.env;
 
@@ -8,9 +8,10 @@ const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } = process.env;
  * @param {Request} req
  * @param {Response} res
  */
-export function verfiyAccessToken(req, res) {
+export function verfiyAccessToken(req, res, next) {
   try {
-    const accessToken = req.cookies[COOKIE_ACCESS_TOKEN_KEY];
+    const authHeader = req.headers["authorization"];
+    const accessToken = authHeader.split(" ")[1];
 
     jwt.verify(accessToken, ACCESS_TOKEN_SECRET, (error, data) => {
       if (error) {
@@ -18,12 +19,13 @@ export function verfiyAccessToken(req, res) {
           success: false,
           message: "A token is required for authentication",
         });
-      } else if (data.user) {
-        req.user = data.user;
-        return next();
+      } else if (data._id) {
+        req._id = data._id;
+        next();
       }
     });
   } catch (error) {
+    console.log(error);
     res.status(401).json({
       success: false,
       message: error,

@@ -5,7 +5,7 @@ import * as auth from "../controllers/auth.js";
 const router = express.Router();
 
 router.post("/login", auth.login);
-router.post("/refresh", auth.refreshToken);
+router.get("/refresh", auth.refreshToken);
 router.post("/register", auth.register);
 router.get("/logout", auth.logout);
 

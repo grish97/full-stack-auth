@@ -4,8 +4,9 @@ const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } = process.env;
 
 export const ACCESS_TOKEN_EXP_TIME = "2m";
 export const REFRESH_TOKEN_EXP_TIME = "10m";
+export const REFRESH_TOKEN_EXP_AGE = 10 * 60 * 1000;
 
-export const COOKIE_ACCESS_TOKEN_KEY = "access_token";
+export const COOKIE_JWT_KEY = "jwt";
 
 /**
  * Sign token by options

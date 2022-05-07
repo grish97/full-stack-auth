@@ -2,7 +2,8 @@ import bcrypt from "bcryptjs";
 import Joi from "@hapi/joi";
 import User from "../models/user.js";
 import {
-  COOKIE_ACCESS_TOKEN_KEY,
+  COOKIE_JWT_KEY,
+  REFRESH_TOKEN_EXP_AGE,
   signAccessToken,
 } from "../middleware/helpers.js";
 import { verifyRefreshToken } from "../middleware/auth.js";
@@ -46,24 +47,25 @@ export async function login(req, res) {
     if (error) {
       return res.json({ success: false, message: error.details[0].message });
     } else {
-      const accessToken = signAccessToken(user.id);
       await user.generateRefreshToken();
+
+      await user.generateAccessToken();
 
       await user.save();
 
       return res
-        .cookie(COOKIE_ACCESS_TOKEN_KEY, accessToken, {
+        .cookie(COOKIE_JWT_KEY, user.refreshToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
+          maxAge: REFRESH_TOKEN_EXP_AGE,
         })
         .status(200)
         .json({
           success: true,
-          data: user,
+          data: user.getPublicFields(),
         });
     }
   } catch (error) {
-    console.log(error);
     res.status(400).json({ success: false, message: JSON.stringify(error) });
   }
 }
@@ -75,51 +77,52 @@ export async function login(req, res) {
  */
 export async function refreshToken(req, res) {
   try {
-    const { refreshToken } = req.body;
+    const cookies = req.cookies;
 
-    if (!refreshToken) {
+    if (!cookies[COOKIE_JWT_KEY]) {
       return res.status(400).json({
         success: true,
         error: "No refresh token provided",
       });
     }
 
-    const payload = await verifyRefreshToken(refreshToken);
+    const cookieRefreshToken = cookies[COOKIE_JWT_KEY];
+
+    const payload = await verifyRefreshToken(cookieRefreshToken);
 
     const user = await User.findOne({ _id: payload._id }).exec();
-    console.log(payload._id, user.refreshToken);
 
     if (!user) {
       return res.status(401).json({
         status: false,
         message: "User not found",
       });
-    } else if (user.refreshToken !== refreshToken) {
+    } else if (user.refreshToken !== cookieRefreshToken) {
       return res.status(401).json({
         success: false,
         message: "Old token. Not valid anymore",
       });
     }
 
-    const accessToken = signAccessToken(user.id);
     await user.generateRefreshToken();
+
+    // save refresh token
     await user.save();
+
+    await user.generateAccessToken();
 
     return res
       .status(200)
-      .cookie(COOKIE_ACCESS_TOKEN_KEY, accessToken, {
+      .cookie(COOKIE_JWT_KEY, user.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
+        maxAge: REFRESH_TOKEN_EXP_AGE,
       })
       .json({
         success: true,
-        data: {
-          accessToken: accessToken,
-          refreshToken: user.refreshToken,
-        },
+        data: user.getPublicFields(),
       });
   } catch (error) {
-    console.log(error);
     res.status(400).json({
       success: false,
       error: error,
@@ -147,7 +150,7 @@ export async function logout(req, res) {
 
     await user.save();
 
-    return res.status(200).clearCookie(COOKIE_ACCESS_TOKEN_KEY).json({
+    return res.status(200).clearCookie(COOKIE_JWT_KEY).json({
       success: true,
       message: "Successfully logged out",
     });
