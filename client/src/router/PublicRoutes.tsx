@@ -1,9 +1,8 @@
 import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "hooks";
 
-interface IPropType {
-  isAuthenticated: boolean;
-}
+export default function PublicRoutes() {
+  const auth = useAuth();
 
-export default function PublicRoutes(props: IPropType) {
-  return props.isAuthenticated ? <Navigate to="/" /> : <Outlet />;
+  return auth.isLogged ? <Navigate to="/" /> : <Outlet />;
 }

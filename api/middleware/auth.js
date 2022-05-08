@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { COOKIE_JWT_KEY } from "./helpers.js";
+import { handleError } from "../configs/handleError.js";
 
 const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } = process.env;
 
@@ -13,6 +13,13 @@ export function verfiyAccessToken(req, res, next) {
     const authHeader = req.headers["authorization"];
     const accessToken = authHeader.split(" ")[1];
 
+    if (!accessToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid access token",
+      });
+    }
+
     jwt.verify(accessToken, ACCESS_TOKEN_SECRET, (error, data) => {
       if (error) {
         return res.status(403).json({
@@ -25,7 +32,7 @@ export function verfiyAccessToken(req, res, next) {
       }
     });
   } catch (error) {
-    console.log(error);
+    handleError(error);
     res.status(401).json({
       success: false,
       message: error,

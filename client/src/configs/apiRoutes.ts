@@ -6,7 +6,11 @@ export default {
     url: "auth/login",
   },
   APP_REFRESH: {
-    method: "POST",
+    method: "GET",
     url: "auth/refresh",
+  },
+  APP_LOGOUT: {
+    method: "GET",
+    url: "auth/logout",
   },
 } as TApiRoutes;

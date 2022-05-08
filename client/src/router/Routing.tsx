@@ -1,40 +1,39 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import useAuth from "hooks/useAuth";
 
 // Route types
 import PublicRoutes from "./PublicRoutes";
 import ProtectedRoutes from "./ProtectedRoutes";
 import PrivateRoutes from "./PrivateRoutes";
+import RequireAuth from "./RequireAuth";
 
-import { Auth, Dashboard, Unknown } from "application/components";
+import { Auth, Dashboard, Unknown, Unauthorized } from "application/components";
+import Layout from "application/components/Layout/Layout";
 
 export default function Routing() {
   const auth = useAuth();
 
   return (
-    <BrowserRouter>
-      <Routes>
+    <Routes>
+      <Route path="/" element={<Layout />}>
         {/** Public routes */}
-        <Route
-          path="/auth"
-          element={<PublicRoutes isAuthenticated={auth.isLogged} />}
-        >
+        <Route path="/auth" element={<PublicRoutes />}>
           <Route path="login" element={<Auth.Login />} />
           <Route path="register" element={<Auth.Register />} />
+          <Route path="unauthorized" element={<Unauthorized />} />
         </Route>
 
-        {/** Private routes */}
-        <Route
-          path="/"
-          element={<PrivateRoutes isAuthenticated={auth.isLogged} />}
-        >
-          <Route path="" element={<Navigate replace to="dashboard" />} />
-          <Route path="dashboard" element={<Dashboard />} />
+        {/** Require to auth routes */}
+        <Route element={<Auth.PersistLogin />}>
+          <Route path="/" element={<RequireAuth allowedRoles={auth.roles} />}>
+            <Route path="" element={<Navigate replace to="dashboard" />} />
+            <Route path="dashboard" element={<Dashboard />} />
+          </Route>
         </Route>
 
         {/** Unknown routes */}
         <Route path="*" element={<Unknown />} />
-      </Routes>
-    </BrowserRouter>
+      </Route>
+    </Routes>
   );
 }

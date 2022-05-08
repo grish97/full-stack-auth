@@ -1,37 +1,68 @@
+import { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { AxiosResponse } from "axios";
+import { Alert } from "antd";
+import { Form, Input, Button, Checkbox } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { axios } from "services";
-import "./Login.scss";
-
-import { Form, Input, Button, Checkbox } from "antd";
-import { Link } from "react-router-dom";
-import { api } from "services";
 import apiRoutes from "configs/apiRoutes";
 import useAuth from "hooks/useAuth";
+import "./Login.scss";
 
 export default function Login() {
-  const { setAuth } = useAuth();
+  const { setAuth, persist } = useAuth();
+  const [errorMessage, setErrorrMessage] = useState("");
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from?.pathname || "/";
 
   async function onFinish(values: any) {
-    console.log(values);
     const data = JSON.stringify({
       email: values.email,
       password: values.password,
     });
 
-    const response = await axios.post(apiRoutes.APP_AUTH_LOGIN.url, data, {
-      headers: {
-        "Content-type": "application/json",
-      },
-      withCredentials: true,
-    });
+    try {
+      const response: AxiosResponse = await axios.post(
+        apiRoutes.APP_AUTH_LOGIN.url,
+        data,
+        {
+          headers: {
+            "Content-type": "application/json",
+          },
+          withCredentials: true,
+        }
+      );
+      const responseInfo = response?.data;
+      const responseData = responseInfo?.data;
 
-    setAuth({
-      id: response.data.id,
-      email: response.data.emil,
-      accessToken: response.data.accessToken,
-      refreshToken: response.data.refreshToken,
-      isLogged: true,
-    });
+      if (responseInfo && responseInfo.success) {
+        setAuth({
+          id: responseData.id,
+          email: responseData.email,
+          username: responseData.username,
+          accessToken: responseData.accessToken,
+          persist: values.remember,
+          isLogged: true,
+          roles: [],
+        });
+
+        localStorage.setItem("persist", values.remember.toString());
+
+        navigate(from, { replace: true });
+      }
+    } catch (error: any) {
+      const errResponse = error?.response || {};
+
+      if (errResponse.status === 400) {
+        setErrorrMessage(errResponse.data.message);
+      } else if (errResponse.status === 401) {
+        setErrorrMessage("Unauthorized");
+      } else if (!error?.response || error?.message) {
+        setErrorrMessage(error?.message || "No server response");
+      }
+    }
   }
 
   const onFinishFailed = (errorInfo: any) => {
@@ -41,6 +72,14 @@ export default function Login() {
   return (
     <div className="login-container">
       <div className="login-form">
+        {errorMessage && (
+          <Alert
+            message="Error"
+            description={errorMessage}
+            type="error"
+            showIcon
+          />
+        )}
         <Form
           name="normal_login"
           className="login-form"
@@ -78,7 +117,7 @@ export default function Login() {
           </Form.Item>
           <Form.Item>
             <Form.Item name="remember" valuePropName="checked" noStyle>
-              <Checkbox>Remember me</Checkbox>
+              <Checkbox checked={persist}>Remember me</Checkbox>
             </Form.Item>
 
             <a className="login-form-forgot" href="">

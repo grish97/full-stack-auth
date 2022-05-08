@@ -6,8 +6,9 @@ const initialState: TAuthState = {
   username: "",
   email: "",
   accessToken: "",
-  refreshToken: "",
   isLogged: false,
+  persist: localStorage.getItem("persist") === "true" || false,
+  roles: [],
 };
 
 export const authSlice = createSlice({

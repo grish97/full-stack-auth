@@ -1,5 +1,5 @@
 import { useSelector, useDispatch } from "react-redux";
-import { setAuth as setAuthData } from "store/slices/authSlice";
+import { setAuth as setAuthData, logout } from "store/slices/authSlice";
 import { RootState } from "store/store";
 
 import { TAuthState } from "@store";
@@ -12,5 +12,9 @@ export default function useAuth() {
     dispatch(setAuthData(payload));
   }
 
-  return { ...authStore, setAuth };
+  function resetAuth() {
+    dispatch(logout());
+  }
+
+  return { ...authStore, setAuth, resetAuth };
 }

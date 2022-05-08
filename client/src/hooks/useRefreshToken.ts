@@ -1,17 +1,35 @@
 import apiRoutes from "configs/apiRoutes";
 import { axios } from "services";
-import useAuth from "./useAuth";
+import { useAuth } from "hooks";
 
-export function useRefreshToken() {
-  const { setAuth } = useAuth();
+export default function useRefreshToken() {
+  const auth = useAuth();
 
-  function refresh() {
-    const response = axios.post(apiRoutes.APP_REFRESH.url, {
+  async function refresh() {
+    let accessToken = "";
+
+    const response = await axios.get(apiRoutes.APP_REFRESH.url, {
       withCredentials: true,
     });
 
-    console.log(response);
+    const responseinfo = response?.data;
+    const responseData = responseinfo?.data;
+
+    if (responseData) {
+      auth.setAuth({
+        id: responseData.id,
+        username: responseData.username,
+        email: responseData.email,
+        accessToken: responseData.accessToken,
+        isLogged: true,
+        roles: responseData.roles || [],
+      });
+
+      accessToken = responseData.accessToken;
+    }
+
+    return accessToken;
   }
 
-  return { refresh };
+  return refresh;
 }

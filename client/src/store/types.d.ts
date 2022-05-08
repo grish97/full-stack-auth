@@ -4,7 +4,8 @@ declare module "@store" {
     username: string;
     email: string;
     accessToken: string;
-    refreshToken: string;
     isLogged: boolean;
+    persist: boolean;
+    roles: number[];
   };
 }
